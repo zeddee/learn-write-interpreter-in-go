@@ -24,7 +24,7 @@ func TestNextToken(t *testing.T) {
 		{token.EOF, ""},
 	}
 
-	l : New(input)
+	l := New(input)
 
 	for i, tt := range tests {
 		tok := l.NextToken()
@@ -37,7 +37,7 @@ func TestNextToken(t *testing.T) {
 
 		if tok.Literal != tt.expectedLiteral {
 			t.Fatalf("tests[%d] — literal wrong. expected %q, got %q",
-		i, tt.expectedLiteral, tok.Literal)
+				i, tt.expectedLiteral, tok.Literal)
 		}
 	}
 }
