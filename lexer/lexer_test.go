@@ -7,27 +7,13 @@ import (
 )
 
 func TestNextToken(t *testing.T) {
-	t.Run("=+(){},;", func(t *testing.T) {
-		input := `=+(){},;`
+	type expectedTokens struct {
+		expectedType    token.TokenType
+		expectedLiteral string
+	}
 
-		tests := []struct {
-			expectedType    token.TokenType
-			expectedLiteral string
-		}{
-			{token.ASSIGN, "="},
-			{token.PLUS, "+"},
-			{token.LPAREN, "("},
-			{token.RPAREN, ")"},
-			{token.LBRACE, "{"},
-			{token.RBRACE, "}"},
-			{token.COMMA, ","},
-			{token.SEMICOLON, ";"},
-			{token.EOF, ""},
-		}
-
-		l := New(input)
-
-		for i, tt := range tests {
+	tester := func(l *Lexer, tokens []expectedTokens) {
+		for i, tt := range tokens {
 			tok := l.NextToken()
 
 			if tok.Type != tt.expectedType {
@@ -41,5 +27,23 @@ func TestNextToken(t *testing.T) {
 					i, tt.expectedLiteral, tok.Literal)
 			}
 		}
+	}
+
+	t.Run("=+(){},;", func(t *testing.T) {
+		l := NewLexer(`=+(){},;`)
+
+		simpleCase := []expectedTokens{
+			{token.ASSIGN, "="},
+			{token.PLUS, "+"},
+			{token.LPAREN, "("},
+			{token.RPAREN, ")"},
+			{token.LBRACE, "{"},
+			{token.RBRACE, "}"},
+			{token.COMMA, ","},
+			{token.SEMICOLON, ";"},
+			{token.EOF, ""},
+		}
+
+		tester(l, simpleCase)
 	})
 }
