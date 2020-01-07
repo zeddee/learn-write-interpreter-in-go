@@ -1,6 +1,10 @@
 package lexer
 
-import "github.com/zeddee/learn-write-interpreter-in-go/token"
+import (
+	"strconv"
+
+	"github.com/zeddee/learn-write-interpreter-in-go/token"
+)
 
 // Lexer tracks our progress while lexing the input string
 type Lexer struct {
@@ -48,13 +52,17 @@ func (l *Lexer) NextToken() token.Token {
 		// where we need to lex a sequence of chars
 		// e.g. for any identifiers
 		if isLetter(l.ch) {
-			tok.Literal = l.readIdentifier()
+			tok.Literal = l.readLiteralSequence(isLetter)
 			tok.Type = token.LookupIdent(tok.Literal)
 			// we're exiting early here because
 			// we've already called l.readChar()
 			// (which we _must_ call in order to get
 			// the complete identifer string)
 			// inside our readIdentifier() call.
+			return tok
+		} else if isDigit(l.ch) {
+			tok.Literal = l.readLiteralSequence(isDigit)
+			tok.Type = token.INT
 			return tok
 		}
 		tok = newToken(token.ILLEGAL, l.ch)
@@ -81,20 +89,27 @@ func newToken(tokenType token.TokenType, ch byte) token.Token {
 	return token.Token{Type: tokenType, Literal: string(ch)}
 }
 
-// readIdentifier reads in a continuous sequence of
-// characters and stops when isLetter() returns false
-func (l *Lexer) readIdentifier() string {
+type checkCharType func(ch byte) bool
+
+// readLiteralSequence reads a sequence of characters
+// of the same type (str, int, etc.)
+// and returns that sequence as a string
+func (l *Lexer) readLiteralSequence(check checkCharType) string {
 	// store the current value of l.position
+	// so we know where our character
+	// sequence starts in l.input
 	position := l.position
-	for isLetter(l.ch) {
+	for check(l.ch) {
 		// read characters in 'input',
-		// check if character fulfils isLetter()
+		// check if character fulfils the
+		// type check implemented by checkCharType()
 		// and advance l.position
-		// once we hit isLetter() == false,
+		// once we hit checkCharType() == false,
 		// we stop and return the string
 		// of characters that we've read
 		l.readChar()
 	}
+
 	return l.input[position:l.position]
 }
 
@@ -103,7 +118,20 @@ func (l *Lexer) readIdentifier() string {
 // what characters will be legal in keywords
 // and identifiers.
 func isLetter(ch byte) bool {
-	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
+	if 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_' {
+		return true
+	}
+	return false
+}
+
+func isDigit(ch byte) bool {
+	// reimplemented as strconv.Atoi check instead
+	// of literal comparisons.
+	// hopefully more robust
+	if _, err := strconv.Atoi(string(ch)); err != nil {
+		return false
+	}
+	return true
 }
 
 // skipWhitespace skips whitespace that does
