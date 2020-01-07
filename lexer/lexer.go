@@ -89,6 +89,23 @@ func newToken(tokenType token.TokenType, ch byte) token.Token {
 	return token.Token{Type: tokenType, Literal: string(ch)}
 }
 
+func checkCharTokenType(ch byte) token.TokenType {
+	switch {
+	// ch is a letter
+	case 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_':
+		return token.IDENT
+	// ch is an int
+	case func() bool {
+		if _, err := strconv.Atoi(string(ch)); err != nil {
+			return false
+		}
+		return true
+	}():
+		return token.INT
+	}
+	return token.ILLEGAL
+}
+
 type checkCharType func(ch byte) bool
 
 // readLiteralSequence reads a sequence of characters
