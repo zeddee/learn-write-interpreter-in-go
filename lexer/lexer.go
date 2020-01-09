@@ -42,6 +42,17 @@ func (l *Lexer) readChar() {
 	l.readPosition++            // updates position to read on the next readChar call
 }
 
+// peekChar reads the byte ahead of current l.position,
+// but doesn't move it i.e. no read progress is made.
+// This is for a case where we just want to see what's ahead,
+// but don't want to lex it yet
+func (l *Lexer) peekChar() byte {
+	if l.readPosition >= len(l.input) {
+		return 0
+	}
+	return l.input[l.readPosition]
+}
+
 // newToken returns a new token
 func newToken(tokenType token.TokenType, ch byte) token.Token {
 	return token.Token{Type: tokenType, Literal: string(ch)}
@@ -55,13 +66,43 @@ func (l *Lexer) NextToken() token.Token {
 
 	switch l.ch {
 	case '=':
-		tok = newToken(token.ASSIGN, l.ch)
+		// comparison operators are a bit more
+		// complex to check for.
+		// we need to check if we have
+		// a special sequence of characters
+		// e.g. two operators put together
+		// that would constitute a comparison
+		// operator.
+		// then we can lex and tokenise
+		// that sequence of characters
+		if l.peekChar() == '=' {
+			ch := l.ch
+			l.readChar()
+			// manually create a token.Token
+			// because our newToken function
+			// only takes in a single byte.
+			tok = token.Token{
+				Type:    token.EQ,
+				Literal: string(ch) + string(l.ch),
+			}
+		} else {
+			tok = newToken(token.ASSIGN, l.ch)
+		}
 	case '+':
 		tok = newToken(token.PLUS, l.ch)
 	case '-':
 		tok = newToken(token.MINUS, l.ch)
 	case '!':
-		tok = newToken(token.BANG, l.ch)
+		if l.peekChar() == '=' {
+			ch := l.ch
+			l.readChar()
+			tok = token.Token{
+				Type:    token.NEQ,
+				Literal: string(ch) + string(l.ch),
+			}
+		} else {
+			tok = newToken(token.BANG, l.ch)
+		}
 	case '*':
 		tok = newToken(token.ASTERISK, l.ch)
 	case '/':
