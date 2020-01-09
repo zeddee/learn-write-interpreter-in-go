@@ -14,11 +14,16 @@ type Lexer struct {
 	ch           byte // current char under examination
 }
 
-// New initialises a new lexer
+// NewLexer initialises a new lexer
 func NewLexer(input string) *Lexer {
 	l := &Lexer{input: input}
 	l.readChar()
 	return l
+}
+
+// newToken returns a new token
+func newToken(tokenType token.TokenType, ch byte) token.Token {
+	return token.Token{Type: tokenType, Literal: string(ch)}
 }
 
 // NextToken returns the next token in the input string
@@ -51,21 +56,27 @@ func (l *Lexer) NextToken() token.Token {
 		// add default case to catch cases
 		// where we need to lex a sequence of chars
 		// e.g. for any identifiers
-		if isLetter(l.ch) {
-			tok.Literal = l.readLiteralSequence(isLetter)
+
+		// switch in a switch ...
+		switch checkCharTokenType(l.ch) {
+		case token.IDENT:
+			tok.Literal = l.readLiteralSequence(token.IDENT)
 			tok.Type = token.LookupIdent(tok.Literal)
 			// we're exiting early here because
 			// we've already called l.readChar()
 			// (which we _must_ call in order to get
 			// the complete identifer string)
-			// inside our readIdentifier() call.
+			// inside our readLiteralSequence() call.
 			return tok
-		} else if isDigit(l.ch) {
-			tok.Literal = l.readLiteralSequence(isDigit)
+		case token.INT:
+			tok.Literal = l.readLiteralSequence(token.INT)
 			tok.Type = token.INT
 			return tok
+		case token.ILLEGAL:
+			fallthrough
+		default:
+			tok = newToken(token.ILLEGAL, l.ch)
 		}
-		tok = newToken(token.ILLEGAL, l.ch)
 	}
 
 	l.readChar()
@@ -85,10 +96,8 @@ func (l *Lexer) readChar() {
 	l.readPosition++            // updates position to read on the next readChar call
 }
 
-func newToken(tokenType token.TokenType, ch byte) token.Token {
-	return token.Token{Type: tokenType, Literal: string(ch)}
-}
-
+// checkCharTokenType reads a byte and
+// returns its token type.
 func checkCharTokenType(ch byte) token.TokenType {
 	switch {
 	// ch is a letter
@@ -96,6 +105,8 @@ func checkCharTokenType(ch byte) token.TokenType {
 		return token.IDENT
 	// ch is an int
 	case func() bool {
+		// a bit of an unweildy anonymous function
+		// to handle the truthiness of strconv.Atoi(ch)
 		if _, err := strconv.Atoi(string(ch)); err != nil {
 			return false
 		}
@@ -111,44 +122,23 @@ type checkCharType func(ch byte) bool
 // readLiteralSequence reads a sequence of characters
 // of the same type (str, int, etc.)
 // and returns that sequence as a string
-func (l *Lexer) readLiteralSequence(check checkCharType) string {
+func (l *Lexer) readLiteralSequence(expectedToken token.TokenType) string {
 	// store the current value of l.position
 	// so we know where our character
 	// sequence starts in l.input
 	position := l.position
-	for check(l.ch) {
+	for checkCharTokenType(l.ch) == expectedToken {
 		// read characters in 'input',
 		// check if character fulfils the
-		// type check implemented by checkCharType()
+		// type check implemented by checkCharTokenType()
 		// and advance l.position
-		// once we hit checkCharType() == false,
+		// once we hit checkCharTokenType() != expectedToken,
 		// we stop and return the string
 		// of characters that we've read
 		l.readChar()
 	}
 
 	return l.input[position:l.position]
-}
-
-// isLetter checks if ch is a letter.
-// the scope of this checker will determine
-// what characters will be legal in keywords
-// and identifiers.
-func isLetter(ch byte) bool {
-	if 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_' {
-		return true
-	}
-	return false
-}
-
-func isDigit(ch byte) bool {
-	// reimplemented as strconv.Atoi check instead
-	// of literal comparisons.
-	// hopefully more robust
-	if _, err := strconv.Atoi(string(ch)); err != nil {
-		return false
-	}
-	return true
 }
 
 // skipWhitespace skips whitespace that does
