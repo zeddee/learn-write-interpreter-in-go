@@ -1,3 +1,7 @@
+// Package lexer contains
+// code that reads and tokenises
+// incoming strings that it ingests,
+// primarily through Lexer.NextToken() calls.
 package lexer
 
 import (
@@ -6,7 +10,9 @@ import (
 	"github.com/zeddee/learn-write-interpreter-in-go/token"
 )
 
-// Lexer tracks our progress while lexing the input string
+// Lexer is a data structure that contains
+// the string we need to lex,
+// and our lexing progress through it.
 type Lexer struct {
 	input        string
 	position     int  // index of current char in input
@@ -15,10 +21,25 @@ type Lexer struct {
 }
 
 // NewLexer initialises a new lexer
+// by taking an input string
 func NewLexer(input string) *Lexer {
 	l := &Lexer{input: input}
-	l.readChar()
+	l.readChar() // Initialises the rest of the Lexer struct
+	// by attempting to read the first byte
 	return l
+}
+
+// readChar reads a character in our input string
+// and updates the lexer.position and lexer.readPosition
+// fields in our lexer
+func (l *Lexer) readChar() {
+	if l.readPosition >= len(l.input) {
+		l.ch = 0 // sets current char to ASCII for NULL
+	} else {
+		l.ch = l.input[l.readPosition] // set current char to index of the position to read
+	}
+	l.position = l.readPosition // updates current position
+	l.readPosition++            // updates position to read on the next readChar call
 }
 
 // newToken returns a new token
@@ -94,19 +115,6 @@ func (l *Lexer) NextToken() token.Token {
 
 	l.readChar()
 	return tok
-}
-
-// readChar reads a character in our input string
-// and updates the lexer.position and lexer.readPosition
-// fields in our lexer
-func (l *Lexer) readChar() {
-	if l.readPosition >= len(l.input) {
-		l.ch = 0 // sets current char to ASCII for NULL
-	} else {
-		l.ch = l.input[l.readPosition] // set current char to index of the position to read
-	}
-	l.position = l.readPosition // updates current position
-	l.readPosition++            // updates position to read on the next readChar call
 }
 
 // checkCharTokenType reads a byte and
